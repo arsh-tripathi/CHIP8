@@ -1,6 +1,6 @@
 #include "include/display.h"
-static int HEIGHT = 64;
-static int WIDTH = 32;
+static int HEIGHT = 32;
+static int WIDTH = 64;
 static int SCALE = 1;
 
 using namespace std;
@@ -13,7 +13,7 @@ Display::Display(Uint8 scale) {
 		SDL_Log("Failed to intialize SDL: %s", SDL_GetError());
 		exit(1);
 	}
-	SDL_Window *window = SDL_CreateWindow("CHIP8", 100, 100, WIDTH, HEIGHT, 0);
+	window = SDL_CreateWindow("CHIP8", 100, 100, WIDTH, HEIGHT, 0);
 	if (!window) {
 		SDL_Log("Couldn't create window: %s\n", SDL_GetError());
 		exit(1);
@@ -25,7 +25,7 @@ Display::Display(Uint8 scale) {
 		exit(1);
 	}
 
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 200, 200);
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
 	if (!texture) {
 		SDL_Log("Couldn't create texture: %s\n", SDL_GetError());
 		exit(1);
@@ -49,25 +49,27 @@ Display::~Display() {
 }
 
 void Display::updatePixel(int x, int y, Uint32 color) {
-	if (x < 0 || x > WIDTH || y < 0 || y > HEIGHT) {
-		SDL_Log("Invalid pixel update");
-		exit(1);
-	} 
 	for (int i = x; i < x + SCALE; ++i) {
-		for (int j = y; y < j + SCALE; ++j) {
+		for (int j = y; j < y  + SCALE; ++j) {
 			pixels[j*WIDTH + i] = color;
 		}
 	}
 }
 
 void Display::clearDisplay() {
-	vector<vector<bool>> v;
-	updateDisplay(v);
+	for (int i = 0; i < WIDTH*HEIGHT; ++i) pixels[i] = bgcolor;
+	SDL_UpdateTexture(texture, nullptr, pixels, WIDTH * sizeof(Uint32));
+	SDL_RenderClear(renderer);
+	SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+	SDL_RenderPresent(renderer);
 }
 
 void Display::updateDisplay(vector<vector<bool>> newPixels) {
 	for (size_t i = 0; i < newPixels.size(); ++i) {
-		for (size_t j = 0; j < newPixels[i].size(); ++j) updatePixel(i, j, newPixels[i][j] ? drawcolor : bgcolor);
+		for (size_t j = 0; j < newPixels[i].size(); ++j) {
+			updatePixel(j*SCALE, i*SCALE, newPixels[i][j] ? drawcolor : bgcolor);
+			// cerr << "i , j, val : " << i << ", " << j << ", " << newPixels[i][j] << endl;
+		}
 	}
 	SDL_UpdateTexture(texture, nullptr, pixels, WIDTH * sizeof(Uint32));
 	SDL_RenderClear(renderer);

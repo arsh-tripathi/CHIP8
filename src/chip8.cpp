@@ -8,11 +8,14 @@ vector<vector<Uint8>> Chip8::SPRITES = {
 	{0xF0, 0x90, 0xF0, 0x90, 0xF0}, {0xF0, 0x90, 0xF0, 0x10, 0xF0}, {0xF0, 0x90, 0xF0, 0x90, 0x90}, {0xE0, 0x90, 0xE0, 0x90, 0xE0},
 	{0xF0, 0x80, 0x80, 0x80, 0xF0}, {0xE0, 0x90, 0x90, 0x90, 0xE0}, {0xF0, 0x80, 0xF0, 0x80, 0xF0}, {0xF0, 0x80, 0xF0, 0x80, 0x80}};
 
-Chip8::Chip8(Uint8 scale) : PC{0x200}, I{0}, DT{0}, ST{0}, d{scale}, scale{scale} {
+Chip8::Chip8(Uint8 scale) : PC{0x200}, I{0}, DT{0}, ST{0}, reald{32, vector<bool>(64, false)} , d{scale}, scale{scale} {
 	for (int i = 0; i < SPRITES.size(); ++i) {
 		for (int j = 0; j < 5; ++j) {
 			memory[5 * i + j] = SPRITES[i][j];
 		}
+	}
+	for (int i = 0; i < 0x10; ++i) {
+		V[i] = 0;
 	}
 	SP = STACK;
 	*SP = PC;
@@ -26,7 +29,12 @@ void Chip8::tick() {
 	}
 }
 
-void Chip8::convertCommad(Uint16 cmd) {
+void Chip8::executeInstruction(Uint16 cmd) {
+	cerr << "[CMD] ";
+	cerr << hex;
+	cerr << cmd;
+	cerr << dec;
+	cerr << ": ";
 	Uint16 x;
 	Uint16 y;
 	Uint16 kk;
@@ -35,9 +43,11 @@ void Chip8::convertCommad(Uint16 cmd) {
 	Uint16 sum;
 	switch (cmd >> 12) {
 		case 0x0:
-			if (cmd == 0x00E0)
+			if (cmd == 0x00E0) {
 				d.clearDisplay();
-			else if (cmd == 0x00EE) {
+				cerr << "Clearing display" << endl;
+				return;
+			} else if (cmd == 0x00EE) {
 				PC = *SP;
 				SP--;
 				return;
@@ -73,6 +83,7 @@ void Chip8::convertCommad(Uint16 cmd) {
 			x = (cmd & 0x0f00) >> 8;
 			kk = (cmd & 0x00ff);
 			V[x] = kk;
+			cerr << "Set register "<< x <<" to " << kk << endl;
 			break;
 		case 0x7:
 			x = (cmd & 0x0f00) >> 8;
@@ -110,7 +121,7 @@ void Chip8::convertCommad(Uint16 cmd) {
 					}
 					break;
 				case 0x6:
-					V[0xf] = V[x] & 0x000f;
+					V[0xf] = V[x] & 0b1;
 					V[x] = V[x] >> 1;
 					break;
 				case 0x7:
@@ -122,8 +133,8 @@ void Chip8::convertCommad(Uint16 cmd) {
 						V[x] = V[y] - V[x];
 					}
 				case 0xE:
-					V[0xf] = (V[x] & 0xf000) >> 12;
-					V[x] = V[x] << 2;
+					V[0xf] = (V[x] & 0b10000000) >> 8;
+					V[x] = V[x] << 1;
 					break;
 				default:
 					cerr << "Invalid command passed" << endl;
@@ -153,12 +164,22 @@ void Chip8::convertCommad(Uint16 cmd) {
 			V[x] = distrib(gen);
 			V[x] = V[x] & kk;
 		} break;
-		case 0xD:
+		case 0xD: {
 			x = (cmd & 0x0f00) >> 8;
 			y = (cmd & 0x00f0) >> 4;
 			n = cmd & 0x000f;
-			// draw the sprite here somehow, need to add functionality
-			break;
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < 8; ++j) {
+					int X = (V[x] + i) % 64;
+					int Y = (V[y] + j) % 32;
+					bool newpixel = (memory[I+i] >> 7 - j) & 0b1;
+					V[0xf] =  reald[X][Y] & newpixel ? 1 : V[0xf];
+					reald[X][Y] = reald[X][Y] ^ newpixel;
+				}
+			}
+			cerr << "Drew the sprite of size "<< n << " at " << I << " to position " << +V[x] << ", " << +V[y] << endl;
+			d.updateDisplay(reald);
+		} break;
 		case 0xE:
 			x = (cmd & 0x0f00) >> 8;
 			if ((cmd & 0x00ff) == 0x9E) {
@@ -195,6 +216,7 @@ void Chip8::convertCommad(Uint16 cmd) {
 					break;
 				case 0x29:
 					I = V[x] * 5;
+					cerr << "Set I to " << I << endl;
 					break;
 				case 0x33:
 					memory[I] = (V[x] / 100) % 10;

@@ -2,6 +2,7 @@
 #define __DISPLAY_H__
 
 #include "SDL2/SDL.h"
+#include <iostream>
 #include <vector>
 #include <map>
 

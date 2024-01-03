@@ -29,6 +29,7 @@ class Chip8 {
 
     Uint8 memory[4096];
 
+    std::vector<std::vector<bool>> reald;
     Display d;     
 
     Uint8 scale;
@@ -36,8 +37,7 @@ class Chip8 {
     public:
         Chip8(Uint8 scale);
         void tick();
-    private:
-        void convertCommad(Uint16 cmd);
+        void executeInstruction(Uint16 cmd);
 
 };
 
