@@ -25,10 +25,10 @@ int main(int argc, char *argv[]) {
 
 	Chip8 c{15};
 	// c.executeInstruction(0x00E0); // clear display
-	// c.executeInstruction(0x6207); // set the register 2 to the number 07
+	// c.executeInstruction(0x6200); // set the register 2 to the number 07
 	// c.executeInstruction(0xF229); // set I to sprite for the number at the register at second place
-	// c.executeInstruction(0x6000); // set register 0 to 0x10
-	// c.executeInstruction(0x6100); // set register 1 to 0x10
+	// c.executeInstruction(0x603D); // set register 0 to 0x10
+	// c.executeInstruction(0x613C); // set register 1 to 0x10
 	// c.executeInstruction(0xD015); // draw 
 
 	SDL_Event e;

@@ -170,13 +170,21 @@ void Chip8::executeInstruction(Uint16 cmd) {
 			n = cmd & 0x000f;
 			for (int i = 0; i < n; i++) {
 				for (int j = 0; j < 8; ++j) {
-					int X = (V[x] + i) % 64;
-					int Y = (V[y] + j) % 32;
-					bool newpixel = (memory[I+i] >> 7 - j) & 0b1;
-					V[0xf] =  reald[X][Y] & newpixel ? 1 : V[0xf];
-					reald[X][Y] = reald[X][Y] ^ newpixel;
+					int X = (V[x] + j) % 64;
+					int Y = (V[y] + i) % 32;
+					bool newpixel = (memory[I+i] >> (7 - j)) & 0b1;
+					V[0xf] =  reald[Y][X] & newpixel ? 1 : V[0xf];
+					reald[Y][X] = reald[Y][X] ^ newpixel;
+					// cerr << "set " << X << ", " << Y << "to " << reald[Y][X] << endl;
 				}
 			}
+			// cerr << endl;
+			// for (int i = 0; i < reald.size(); ++i) {
+			// 	for (int j = 0; j < reald[i].size(); ++j) {
+			// 		cerr << reald[i][j];
+			// 	}
+			// 	cerr << endl;
+			// }
 			cerr << "Drew the sprite of size "<< n << " at " << I << " to position " << +V[x] << ", " << +V[y] << endl;
 			d.updateDisplay(reald);
 		} break;
