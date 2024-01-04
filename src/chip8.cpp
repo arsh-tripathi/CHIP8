@@ -2,23 +2,106 @@
 
 using namespace std;
 
+Uint32 timerCallback(Uint32 Interval, void *param) {
+	Chip8 *c = static_cast<Chip8 *>(param);
+	if (c) c->tick();
+	return 19;
+}
+
 vector<vector<Uint8>> Chip8::SPRITES = {
 	{0xF0, 0x90, 0x90, 0x90, 0xF0}, {0x20, 0x60, 0x20, 0x20, 0x70}, {0xF0, 0x10, 0xF0, 0x80, 0xF0}, {0xF0, 0x10, 0xF0, 0x10, 0xF0},
 	{0x90, 0x90, 0xF0, 0x10, 0x10}, {0xF0, 0x80, 0xF0, 0x10, 0xF0}, {0xF0, 0x80, 0xF0, 0x90, 0xF0}, {0xF0, 0x10, 0x20, 0x40, 0x40},
 	{0xF0, 0x90, 0xF0, 0x90, 0xF0}, {0xF0, 0x90, 0xF0, 0x10, 0xF0}, {0xF0, 0x90, 0xF0, 0x90, 0x90}, {0xE0, 0x90, 0xE0, 0x90, 0xE0},
 	{0xF0, 0x80, 0x80, 0x80, 0xF0}, {0xE0, 0x90, 0x90, 0x90, 0xE0}, {0xF0, 0x80, 0xF0, 0x80, 0xF0}, {0xF0, 0x80, 0xF0, 0x80, 0x80}};
 
-Chip8::Chip8(Uint8 scale) : PC{0x200}, I{0}, DT{0}, ST{0}, reald{32, vector<bool>(64, false)} , d{scale}, scale{scale} {
+Chip8::Chip8(Uint8 scale, char *rom)
+	: PC{0x200}, I{0}, DT{0}, ST{0}, reald{32, vector<bool>(64, false)}, d{scale}, timer{SDL_AddTimer(19, timerCallback, nullptr)}, scale{scale} {
+	// SETUP REGISTERS TO DEFAULT VALUES
+	for (int i = 0; i < 0x10; ++i) {
+		V[i] = 0;
+	}
+	SP = STACK;
+
+	// MEMORY SETUP
+	// 1. Setting up sprites
 	for (int i = 0; i < SPRITES.size(); ++i) {
 		for (int j = 0; j < 5; ++j) {
 			memory[5 * i + j] = SPRITES[i][j];
 		}
 	}
-	for (int i = 0; i < 0x10; ++i) {
-		V[i] = 0;
+	// Loading rom into memory
+	ifstream in{rom, ios::binary};
+	if (!in) {
+		cerr << "The file cannot be accessed" << endl;
+		exit(1);
 	}
-	SP = STACK;
-	*SP = PC;
+	Uint8 value;
+	int j = 0x200;
+	in >> noskipws;
+	while (in >> value) {
+		memory[j++] = value;
+	}
+	for (int i = j; i < 4096; ++i) {
+		memory[i] = 0;
+	}
+	// Resetting PC
+	ofstream out{"memory"};
+	for (int i = 0; i < 4096; ++i) {
+		out << i << ": ";
+		out << hex;
+		out << +memory[i] << endl;
+		out << dec;
+	}
+}
+
+Chip8::~Chip8() { SDL_RemoveTimer(timer); }
+
+void Chip8::run() {
+	// executeInstruction(0x00E0); // clear display
+	// executeInstruction(0x6200); // set the register 2 to the number 07
+	// executeInstruction(0xF229); // set I to sprite for the number at the register at second place
+	// executeInstruction(0x6000); // set register 0 to 0x10
+	// executeInstruction(0x6100); // set register 1 to 0x10
+	// executeInstruction(0xD015); // draw
+	// executeInstruction(0x7003); // set register 0 to 0x10
+	// executeInstruction(0xD015); // draw
+	// ofstream out{"memory"};
+	// for (int i = 0; i < 4096; ++i) {
+	// 	out << i << ": ";
+	// 	out << hex;
+	// 	out << +memory[i] << endl;
+	// 	out << dec;
+	// }
+
+	SDL_Event e;
+	bool quit = false;
+	while (!quit) {
+		SDL_PollEvent(&e);
+		switch (e.type) {
+			case SDL_QUIT:
+				quit = true;
+				break;
+			case SDL_KEYDOWN:
+				d.updateKeyStatus(e.key.keysym.sym, true);
+				break;
+			case SDL_KEYUP:
+				d.updateKeyStatus(e.key.keysym.sym, false);
+				break;
+			default:
+				break;
+		}
+		Uint16 instruction = (memory[PC] << 8) | memory[PC + 1];
+		// cerr << hex;
+		// if (instruction != 0) cerr << instruction << endl;
+		// cerr << dec;
+		executeInstruction(instruction);
+	}
+	// for (int i = 0; i < 4096; ++i) {
+	// 		out << i << ": ";
+	// 		out << hex;
+	// 		out << +memory[i] << endl;
+	// 		out << dec;
+	// }
 }
 
 void Chip8::tick() {
@@ -46,7 +129,6 @@ void Chip8::executeInstruction(Uint16 cmd) {
 			if (cmd == 0x00E0) {
 				d.clearDisplay();
 				cerr << "Clearing display" << endl;
-				return;
 			} else if (cmd == 0x00EE) {
 				PC = *SP;
 				SP--;
@@ -83,7 +165,7 @@ void Chip8::executeInstruction(Uint16 cmd) {
 			x = (cmd & 0x0f00) >> 8;
 			kk = (cmd & 0x00ff);
 			V[x] = kk;
-			cerr << "Set register "<< x <<" to " << kk << endl;
+			// cerr << "Set register "<< x <<" to " << kk << endl;
 			break;
 		case 0x7:
 			x = (cmd & 0x0f00) >> 8;
@@ -142,6 +224,8 @@ void Chip8::executeInstruction(Uint16 cmd) {
 			}
 			break;
 		case 0x9:
+			x = (cmd & 0x0f00) >> 8;
+			y = (cmd & 0x00f0) >> 4;
 			if ((cmd & 0x000f) == 0x0) {
 				if (V[x] != V[y]) PC += 2;
 			} else
@@ -172,8 +256,8 @@ void Chip8::executeInstruction(Uint16 cmd) {
 				for (int j = 0; j < 8; ++j) {
 					int X = (V[x] + j) % 64;
 					int Y = (V[y] + i) % 32;
-					bool newpixel = (memory[I+i] >> (7 - j)) & 0b1;
-					V[0xf] =  reald[Y][X] & newpixel ? 1 : V[0xf];
+					bool newpixel = (memory[I + i] >> (7 - j)) & 0b1;
+					V[0xf] = reald[Y][X] & newpixel ? 1 : V[0xf];
 					reald[Y][X] = reald[Y][X] ^ newpixel;
 					// cerr << "set " << X << ", " << Y << "to " << reald[Y][X] << endl;
 				}
@@ -185,7 +269,7 @@ void Chip8::executeInstruction(Uint16 cmd) {
 			// 	}
 			// 	cerr << endl;
 			// }
-			cerr << "Drew the sprite of size "<< n << " at " << I << " to position " << +V[x] << ", " << +V[y] << endl;
+			cerr << "Drew the sprite of size " << n << " at " << I << " to position " << +V[x] << ", " << +V[y] << endl;
 			d.updateDisplay(reald);
 		} break;
 		case 0xE:
@@ -195,7 +279,7 @@ void Chip8::executeInstruction(Uint16 cmd) {
 			} else if ((cmd & 0x00ff) == 0xA1) {
 				if (!d.isKeyDown(V[x])) PC += 2;
 			} else
-				cerr << "Invalid Command" << endl;
+				cerr << "Invalid command passed" << endl;
 			break;
 		case 0xF:
 			x = (cmd & 0x0f00) >> 8;
@@ -238,9 +322,20 @@ void Chip8::executeInstruction(Uint16 cmd) {
 					for (int i = 0; i < 0x10; ++i) V[i] = memory[I + i];
 					break;
 				default:
+					cerr << "Invalid command passed" << endl;
 					break;
 			}
 		default:
+			cerr << "Invalid command passed" << endl;
 			break;
 	}
+	PC += 2;
+	cerr << "V[0-F]: ";
+	cerr << hex;
+	cerr << +V[0] << " " << +V[1] << " " << +V[2] << " " << +V[3] << " " << +V[4] << " " << +V[5] << " " << +V[6] << " " << +V[7] << " " << +V[8]
+		 << " " << +V[9] << " " << +V[0xA] << " " << +V[0xB] << " " << +V[0xC] << " " << +V[0xD] << " " << +V[0xE] << " " << +V[0xF] << endl;
+	cerr << "PC: " << PC << " ";
+	cerr << "I: " << I << " ";
+	cerr << "DT: " << DT << " ";
+	cerr << "ST: " << ST << endl;
 }

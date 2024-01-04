@@ -11,6 +11,7 @@ class Display {
     SDL_Texture *texture;
     SDL_Renderer *renderer;
     Uint32 *pixels;
+    bool keyDwnStatus[16];
     Uint32 bgcolor;
     Uint32 drawcolor;
     public:
@@ -19,6 +20,7 @@ class Display {
         void updateDisplay(std::vector<std::vector<bool>> newPixels);
         void clearDisplay();
         void buzz();
+        void updateKeyStatus(SDL_Keycode key, bool status);
         bool isKeyDown(Uint16 key);
     private:
         void updatePixel(int x, int y, Uint32 color);

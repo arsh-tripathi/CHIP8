@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <cstring>
 #include <iostream>
+#include <vector>
+#include <fstream>
 
 #include "include/chip8.h"
 #include "include/SDL2/SDL.h"
@@ -18,31 +20,9 @@ int main(int argc, char *argv[]) {
 		cerr <<  "Usage: ./chip8 rom" << endl;
 		exit(1);
 	}
-	char *rom = argv[1];
 
-	// Initializing SDL
-	bool quit = false;
-
-	Chip8 c{15};
-	// c.executeInstruction(0x00E0); // clear display
-	// c.executeInstruction(0x6200); // set the register 2 to the number 07
-	// c.executeInstruction(0xF229); // set I to sprite for the number at the register at second place
-	// c.executeInstruction(0x603D); // set register 0 to 0x10
-	// c.executeInstruction(0x613C); // set register 1 to 0x10
-	// c.executeInstruction(0xD015); // draw 
-
-	SDL_Event e;
-	while (!quit) {
-		SDL_PollEvent(&e);
-		switch (e.type) {
-			case SDL_QUIT:
-				quit = true;
-				break;
-			default:
-				break;
-		}
-
-	}
+	Chip8 c{15, argv[1]};
+	c.run();
 
 	return 0;
 }

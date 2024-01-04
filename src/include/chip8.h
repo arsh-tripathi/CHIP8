@@ -3,6 +3,7 @@
 #include "display.h"
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <random>
 
 class Chip8 { 
@@ -30,14 +31,20 @@ class Chip8 {
     Uint8 memory[4096];
 
     std::vector<std::vector<bool>> reald;
-    Display d;     
+    public:
+    Display d;
+    SDL_TimerID timer;
 
     Uint8 scale;
 
     public:
-        Chip8(Uint8 scale);
+        Chip8(Uint8 scale, char *rom);
+        ~Chip8();
         void tick();
         void executeInstruction(Uint16 cmd);
+        void run();
+    private:
+        void printStaus();
 
 };
 
