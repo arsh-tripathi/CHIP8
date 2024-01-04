@@ -20,7 +20,7 @@ Chip8::Chip8(Uint8 scale, char *rom)
 	for (int i = 0; i < 0x10; ++i) {
 		V[i] = 0;
 	}
-	SP = STACK;
+	SP = STACK - 1;
 
 	// MEMORY SETUP
 	// 1. Setting up sprites
