@@ -15,12 +15,19 @@ vector<vector<Uint8>> Chip8::SPRITES = {
 	{0xF0, 0x80, 0x80, 0x80, 0xF0}, {0xE0, 0x90, 0x90, 0x90, 0xE0}, {0xF0, 0x80, 0xF0, 0x80, 0xF0}, {0xF0, 0x80, 0xF0, 0x80, 0x80}};
 
 Chip8::Chip8(Uint8 scale, char *rom)
-	: PC{0x200}, I{0}, DT{0}, ST{0}, reald{32, vector<bool>(64, false)}, d{scale}, timer{SDL_AddTimer(19, timerCallback, nullptr)}, scale{scale} {
+	: PC{0x200},
+	  SP{-1},
+	  I{0},
+	  DT{0},
+	  ST{0},
+	  reald{32, vector<bool>(64, false)},
+	  d{scale},
+	  timer{SDL_AddTimer(19, timerCallback, nullptr)},
+	  scale{scale} {
 	// SETUP REGISTERS TO DEFAULT VALUES
 	for (int i = 0; i < 0x10; ++i) {
 		V[i] = 0;
 	}
-	SP = STACK - 1;
 
 	// MEMORY SETUP
 	// 1. Setting up sprites
@@ -130,7 +137,7 @@ void Chip8::executeInstruction(Uint16 cmd) {
 				d.clearDisplay();
 				cerr << "Clearing display" << endl;
 			} else if (cmd == 0x00EE) {
-				PC = *SP;
+				PC = STACK[SP];
 				SP--;
 				return;
 			} else
@@ -141,10 +148,10 @@ void Chip8::executeInstruction(Uint16 cmd) {
 			PC = cmd;
 			return;
 		case 0x2:
-			cmd = cmd & 0x0fff;
+			nnn = cmd & 0x0fff;
 			SP++;
-			*SP = PC;
-			PC = cmd;
+			STACK[SP] = PC + 2;
+			PC = nnn;
 			return;
 		case 0x3:
 			x = (cmd & 0x0f00) >> 8;
@@ -334,8 +341,7 @@ void Chip8::executeInstruction(Uint16 cmd) {
 	cerr << hex;
 	cerr << +V[0] << " " << +V[1] << " " << +V[2] << " " << +V[3] << " " << +V[4] << " " << +V[5] << " " << +V[6] << " " << +V[7] << " " << +V[8]
 		 << " " << +V[9] << " " << +V[0xA] << " " << +V[0xB] << " " << +V[0xC] << " " << +V[0xD] << " " << +V[0xE] << " " << +V[0xF] << endl;
-	cerr << "PC: " << PC << " ";
-	cerr << "I: " << I << " ";
-	cerr << "DT: " << DT << " ";
-	cerr << "ST: " << ST << endl;
+	cerr << "PC: " << PC << " I: " << I << " SP: " << SP;
+	if (SP >= 0) cerr << " SUB: " << STACK[SP];
+	cerr << " DT: " << DT << " ST: " << ST << endl;
 }

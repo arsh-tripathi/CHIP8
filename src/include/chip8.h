@@ -14,7 +14,7 @@ class Chip8 {
     Uint16 STACK[16];
 
     // Stack Pointer
-    Uint16 *SP;
+    int SP;
 
     // General Purpose 8bit registers
     Uint8 V[16];
