@@ -31,9 +31,10 @@ class Chip8 {
     Uint8 memory[4096];
 
     std::vector<std::vector<bool>> reald;
-    public:
     Display d;
+
     SDL_TimerID timer;
+    std::ofstream debug;
 
     Uint8 scale;
 
